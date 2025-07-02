@@ -1,14 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.IO;
 
 namespace Synchronizer
 {
     public class FolderSynchronizer : IFolderSynchronizer
     {
         private readonly ILogger _logger;
-        public FolderSynchronizer(ILogger logger)
+        private readonly System.IO.Abstractions.IFileSystem _fileSystem;
+
+        public FolderSynchronizer(ILogger logger, System.IO.Abstractions.IFileSystem fileSystem)
         {
             _logger = logger;
+            _fileSystem = fileSystem;
         }
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
@@ -21,14 +23,14 @@ namespace Synchronizer
                 return false;
             }
 
-            var sourcefiles = Directory.GetFiles(fullSourcePath, "*", SearchOption.AllDirectories);
-            var destinationFiles = Directory.GetFiles(fullDestinationPath, "*", SearchOption.AllDirectories);
+            var sourcefiles = _fileSystem.Directory.GetFiles(fullSourcePath, "*", SearchOption.AllDirectories);
+            var destinationFiles = _fileSystem.Directory.GetFiles(fullDestinationPath, "*", SearchOption.AllDirectories);
 
             foreach (var file in sourcefiles)
             {
-                _logger.LogDebug("Source file: {File}", file);
+                _logger.LogDebug("Source file detected: {File}", file);
                 var fileName = Path.GetFileName(file);
-                File.Copy(file, Path.Combine(fullDestinationPath, fileName), true);
+                _fileSystem.File.Copy(file, Path.Combine(fullDestinationPath, fileName), true);
             }
 
             return true;
@@ -37,13 +39,13 @@ namespace Synchronizer
         private string? CheckAndGetFullPath(string path)
         {
             var fullPath = Path.GetFullPath(path);
-            if (!Directory.Exists(fullPath))
+            if (!_fileSystem.Directory.Exists(fullPath))
             {
                 _logger.LogError("Folder {Path} does not exists as {FullPath}", path, fullPath);
                 return null;
             }
 
-            _logger.LogDebug("Folder {path} exists as {fullPath}", path, fullPath);
+            _logger.LogDebug("Folder {Path} exists as {FullPath}", path, fullPath);
             return fullPath;
         }
     }

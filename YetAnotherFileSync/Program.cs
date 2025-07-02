@@ -20,10 +20,11 @@ namespace YetAnotherFileSync
             var folderSynchronizerLogger = factory.CreateLogger<FolderSynchronizer>();
 
             programLogger.LogInformation("Starting YetAnotherFileSync program");
-            programLogger.LogDebug("{Length} arguments given: {Args}", args.Length, string.Join(", ", args));
+            programLogger.LogDebug("{Length} arguments given: {ArgsString}", args.Length, string.Join(", ", args));
 
-            var folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger);
-            folderSynchronizer.SyncronizeFolders("C:\\Users\\ecime\\Desktop\\source", "C:\\Users\\ecime\\Desktop\\destination");
+            var fileSystem = new System.IO.Abstractions.FileSystem();
+            var folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger, fileSystem);
+            folderSynchronizer.SyncronizeFolders("C:\\Users\\ecime\\Desktop\\source 1", "C:\\Users\\ecime\\Desktop\\destination 2");
         }
     }
 }
