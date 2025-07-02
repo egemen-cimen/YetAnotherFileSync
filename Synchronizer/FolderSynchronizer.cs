@@ -15,8 +15,8 @@ namespace Synchronizer
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
-            var fullSourcePath = CheckAndGetFullPath(sourcePath);
-            var fullDestinationPath = CheckAndGetFullPath(destinationPath);
+            var fullSourcePath = CheckDirectoryAndGetFullPath(sourcePath);
+            var fullDestinationPath = CheckDirectoryAndGetFullPath(destinationPath);
 
             if (fullSourcePath == null || fullDestinationPath == null)
             {
@@ -28,15 +28,28 @@ namespace Synchronizer
 
             foreach (var file in sourcefiles)
             {
-                _logger.LogDebug("Source file detected: {File}", file);
-                var fileName = Path.GetFileName(file);
-                _fileSystem.File.Copy(file, Path.Combine(fullDestinationPath, fileName), true);
+                var relativePath = Path.GetRelativePath(fullSourcePath, file);
+                var sourceFileName = Path.Combine(fullSourcePath, relativePath);
+                var destFileName = Path.Combine(fullDestinationPath, relativePath);
+
+                _logger.LogInformation("Copying `{Relative}` from `{Source}` to `{Destination}`...", relativePath, sourceFileName, fullDestinationPath);
+
+                var destDirectoryName = Path.GetDirectoryName(destFileName);
+                if (destDirectoryName != null)
+                {
+                    _fileSystem.Directory.CreateDirectory(destDirectoryName);
+                    _fileSystem.File.Copy(sourceFileName, destFileName, true);
+                }
+                else
+                {
+                    _logger.LogError("Unexpected state");
+                }
             }
 
             return true;
         }
 
-        private string? CheckAndGetFullPath(string path)
+        private string? CheckDirectoryAndGetFullPath(string path)
         {
             var fullPath = Path.GetFullPath(path);
             if (!_fileSystem.Directory.Exists(fullPath))
