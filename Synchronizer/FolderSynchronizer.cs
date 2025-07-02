@@ -2,16 +2,10 @@
 
 namespace Synchronizer
 {
-    public class FolderSynchronizer : IFolderSynchronizer
+    public class FolderSynchronizer(ILogger logger, System.IO.Abstractions.IFileSystem fileSystem) : IFolderSynchronizer
     {
-        private readonly ILogger _logger;
-        private readonly System.IO.Abstractions.IFileSystem _fileSystem;
-
-        public FolderSynchronizer(ILogger logger, System.IO.Abstractions.IFileSystem fileSystem)
-        {
-            _logger = logger;
-            _fileSystem = fileSystem;
-        }
+        private readonly ILogger _logger = logger;
+        private readonly System.IO.Abstractions.IFileSystem _fileSystem = fileSystem;
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
@@ -61,7 +55,6 @@ namespace Synchronizer
                 }
             }
 
-            var sourceDirectories = _fileSystem.Directory.GetDirectories(fullSourcePath);
             var destinationDirectories = _fileSystem.Directory.GetDirectories(fullDestinationPath, "*", SearchOption.AllDirectories);
 
             foreach (var directory in destinationDirectories)
