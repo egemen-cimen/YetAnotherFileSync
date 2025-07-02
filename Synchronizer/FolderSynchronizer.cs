@@ -32,7 +32,7 @@ namespace Synchronizer
                 var sourceFileName = Path.Combine(fullSourcePath, relativePath);
                 var destFileName = Path.Combine(fullDestinationPath, relativePath);
 
-                _logger.LogInformation("Copying `{Relative}` from `{Source}` to `{Destination}`...", relativePath, sourceFileName, fullDestinationPath);
+                _logger.LogInformation("Copying `{Relative}` from `{Source}` to `{Destination}`.", relativePath, sourceFileName, fullDestinationPath);
 
                 var destDirectoryName = Path.GetDirectoryName(destFileName);
                 if (destDirectoryName != null)
@@ -43,6 +43,20 @@ namespace Synchronizer
                 else
                 {
                     _logger.LogError("Unexpected state");
+                }
+            }
+
+            foreach (var file in destinationFiles)
+            {
+                var relativePath = Path.GetRelativePath(fullDestinationPath, file);
+                var sourceFileName = Path.Combine(fullSourcePath, relativePath);
+                var destFileName = Path.Combine(fullDestinationPath, relativePath);
+
+                _logger.LogDebug("Checking if `{Relative}` in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceFileName);
+                if (!_fileSystem.File.Exists(sourceFileName))
+                {
+                    _logger.LogInformation("Deleting {DestFileName} because it doesn't exist in source directory.", destFileName);
+                    _fileSystem.File.Delete(destFileName);
                 }
             }
 
