@@ -1,9 +1,16 @@
-﻿using System.IO;
+﻿using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace Synchronizer
 {
     public class FolderSynchronizer : IFolderSynchronizer
     {
+        private readonly ILogger _logger;
+        public FolderSynchronizer(ILogger logger)
+        {
+            _logger = logger;
+        }
+
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
             var fullSourcePath = CheckAndGetFullPath(sourcePath);
@@ -19,7 +26,7 @@ namespace Synchronizer
 
             foreach (var file in sourcefiles)
             {
-                Console.WriteLine(file);
+                _logger.LogDebug("Source file: {File}", file);
                 var fileName = Path.GetFileName(file);
                 File.Copy(file, Path.Combine(fullDestinationPath, fileName), true);
             }
@@ -27,16 +34,16 @@ namespace Synchronizer
             return true;
         }
 
-        private static string? CheckAndGetFullPath(string path)
+        private string? CheckAndGetFullPath(string path)
         {
             var fullPath = Path.GetFullPath(path);
             if (!Directory.Exists(fullPath))
             {
-                Console.WriteLine($"Folder {path} does not exists as {fullPath}");
+                _logger.LogError("Folder {Path} does not exists as {FullPath}", path, fullPath);
                 return null;
             }
 
-            Console.WriteLine($"Folder {path} exists as {fullPath}");
+            _logger.LogDebug("Folder {path} exists as {fullPath}", path, fullPath);
             return fullPath;
         }
     }
