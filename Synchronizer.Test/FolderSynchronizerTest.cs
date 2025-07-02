@@ -235,5 +235,34 @@ namespace Synchronizer.Test
             Assert.IsNotNull(file1);
             Assert.IsNotNull(file2);
         }
+
+        [TestMethod]
+        public void GivenFileWithTheSameNameInInputAndOutputDirectoriesWhenSyncedThenFileContentIsUpdated()
+        {
+            // GIVEN
+            var loggerFactory = new NullLoggerFactory();
+            var logger = loggerFactory.CreateLogger("test");
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"c:\demo\jQuery.js", new MockFileData("some js") },
+                { @"c:\backup\jQuery.js", new MockFileData("some other js") }
+            });
+
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+
+            // WHEN
+            var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
+
+            // THEN
+            Assert.IsTrue(result);
+
+            var files = fileSystem.Directory.GetFiles(@"c:\backup");
+            Assert.AreEqual(1, files.Length);
+
+            var file1 = fileSystem.GetFile(@"c:\backup\jQuery.js");
+
+            Assert.IsNotNull(file1);
+            CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("some js"), file1.Contents);
+        }
     }
 }
