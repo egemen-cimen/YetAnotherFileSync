@@ -37,6 +37,7 @@ namespace Synchronizer
                 var destDirectoryName = Path.GetDirectoryName(destFileName);
                 if (destDirectoryName != null)
                 {
+                    _logger.LogDebug("Trying to create directory `{DestinationDirectoryName}`.", destDirectoryName);
                     _fileSystem.Directory.CreateDirectory(destDirectoryName);
                     _fileSystem.File.Copy(sourceFileName, destFileName, true);
                 }
@@ -52,11 +53,28 @@ namespace Synchronizer
                 var sourceFileName = Path.Combine(fullSourcePath, relativePath);
                 var destFileName = Path.Combine(fullDestinationPath, relativePath);
 
-                _logger.LogDebug("Checking if `{Relative}` in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceFileName);
+                _logger.LogDebug("Checking if `{Relative}` file in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceFileName);
                 if (!_fileSystem.File.Exists(sourceFileName))
                 {
                     _logger.LogInformation("Deleting {DestFileName} because it doesn't exist in source directory.", destFileName);
                     _fileSystem.File.Delete(destFileName);
+                }
+            }
+
+            var sourceDirectories = _fileSystem.Directory.GetDirectories(fullSourcePath);
+            var destinationDirectories = _fileSystem.Directory.GetDirectories(fullDestinationPath, "*", SearchOption.AllDirectories);
+
+            foreach (var directory in destinationDirectories)
+            {
+                var relativePath = Path.GetRelativePath(fullDestinationPath, directory);
+                var sourceDirectoryName = Path.Combine(fullSourcePath, relativePath);
+                var destDirectoryName = Path.Combine(fullDestinationPath, relativePath);
+
+                _logger.LogDebug("Checking if `{Relative}` directory in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceDirectoryName);
+                if (!_fileSystem.Directory.Exists(sourceDirectoryName))
+                {
+                    _logger.LogInformation("Deleting `{DestFileName}` because it doesn't exist in source directory.", destDirectoryName);
+                    _fileSystem.Directory.Delete(destDirectoryName, true);
                 }
             }
 
