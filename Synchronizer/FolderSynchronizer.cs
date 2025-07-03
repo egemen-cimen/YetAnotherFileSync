@@ -9,66 +9,67 @@ namespace Synchronizer
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
-            var fullSourcePath = CheckDirectoryAndGetFullPath(sourcePath);
-            var fullDestinationPath = CheckDirectoryAndGetFullPath(destinationPath);
+            var sourceFullPath = CheckDirectoryAndGetFullPath(sourcePath);
+            var destinationFullPath = CheckDirectoryAndGetFullPath(destinationPath);
 
-            if (fullSourcePath == null || fullDestinationPath == null)
+            if (sourceFullPath == null || destinationFullPath == null)
             {
                 return false;
             }
 
-            var sourcefiles = _fileSystem.Directory.GetFiles(fullSourcePath, "*", SearchOption.AllDirectories);
-            var destinationFiles = _fileSystem.Directory.GetFiles(fullDestinationPath, "*", SearchOption.AllDirectories);
+            var sourceAllFiles = _fileSystem.Directory.GetFiles(sourceFullPath, "*", SearchOption.AllDirectories);
+            var destinationAllFiles = _fileSystem.Directory.GetFiles(destinationFullPath, "*", SearchOption.AllDirectories);
+            var sourceAllDirectories = _fileSystem.Directory.GetDirectories(sourceFullPath, "*", SearchOption.AllDirectories);
+            var destinationAllDirectories = _fileSystem.Directory.GetDirectories(destinationFullPath, "*", SearchOption.AllDirectories);
 
-            foreach (var file in sourcefiles)
+            var sourceAllFilesRelativePaths = sourceAllFiles.Select(f => Path.GetRelativePath(sourceFullPath, f)).ToList();
+            var destinationAllFilesRelativePaths = destinationAllFiles.Select(f => Path.GetRelativePath(destinationFullPath, f)).ToList();
+            var sourceAllDirectoriesRelativePaths = sourceAllDirectories.Select(f => Path.GetRelativePath(sourceFullPath, f)).ToList();
+            var destinationAllDirectoriesRelativePaths = destinationAllDirectories.Select(f => Path.GetRelativePath(destinationFullPath, f)).ToList();
+
+            var sourceOnlyFilesRelativePaths = sourceAllFilesRelativePaths.Except(destinationAllFilesRelativePaths).ToList();
+            var destinationOnlyFilesRelativePaths = destinationAllFilesRelativePaths.Except(sourceAllFilesRelativePaths).ToList();
+            var sourceOnlyDirectoriesRelativePaths = sourceAllDirectoriesRelativePaths.Except(destinationAllDirectoriesRelativePaths).ToList();
+            var destinationOnlyDirectoriesRelativePaths = destinationAllDirectoriesRelativePaths.Except(sourceAllDirectoriesRelativePaths).ToList();
+
+            var commonFilesRelativePaths = sourceAllFilesRelativePaths.Intersect(destinationAllFilesRelativePaths).ToList();
+
+            foreach (var directoryRelativePath in sourceOnlyDirectoriesRelativePaths)
             {
-                var relativePath = Path.GetRelativePath(fullSourcePath, file);
-                var sourceFileName = Path.Combine(fullSourcePath, relativePath);
-                var destFileName = Path.Combine(fullDestinationPath, relativePath);
-
-                _logger.LogInformation("Copying `{Relative}` from `{Source}` to `{Destination}`.", relativePath, sourceFileName, fullDestinationPath);
-
-                var destDirectoryName = Path.GetDirectoryName(destFileName);
-                if (destDirectoryName != null)
-                {
-                    _logger.LogDebug("Trying to create directory `{DestinationDirectoryName}`.", destDirectoryName);
-                    _fileSystem.Directory.CreateDirectory(destDirectoryName);
-                    _fileSystem.File.Copy(sourceFileName, destFileName, true);
-                }
-                else
-                {
-                    _logger.LogError("Unexpected state");
-                }
+                var destinationDirectoryName = Path.Combine(destinationFullPath, directoryRelativePath);
+                _logger.LogDebug("Creating directory `{DestinationDirectoryName}`.", destinationDirectoryName);
+                _fileSystem.Directory.CreateDirectory(destinationDirectoryName);
             }
 
-            foreach (var file in destinationFiles)
+            foreach (var fileRelativePath in sourceOnlyFilesRelativePaths)
             {
-                var relativePath = Path.GetRelativePath(fullDestinationPath, file);
-                var sourceFileName = Path.Combine(fullSourcePath, relativePath);
-                var destFileName = Path.Combine(fullDestinationPath, relativePath);
-
-                _logger.LogDebug("Checking if `{Relative}` file in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceFileName);
-                if (!_fileSystem.File.Exists(sourceFileName))
-                {
-                    _logger.LogInformation("Deleting {DestFileName} because it doesn't exist in source directory.", destFileName);
-                    _fileSystem.File.Delete(destFileName);
-                }
+                var sourceFileName = Path.Combine(sourceFullPath, fileRelativePath);
+                var destinationFileName = Path.Combine(destinationFullPath, fileRelativePath);
+                _logger.LogInformation("Copying `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
+                _fileSystem.File.Copy(sourceFileName, destinationFileName, true);
             }
 
-            var destinationDirectories = _fileSystem.Directory.GetDirectories(fullDestinationPath, "*", SearchOption.AllDirectories);
-
-            foreach (var directory in destinationDirectories)
+            foreach (var fileRelativePath in commonFilesRelativePaths)
             {
-                var relativePath = Path.GetRelativePath(fullDestinationPath, directory);
-                var sourceDirectoryName = Path.Combine(fullSourcePath, relativePath);
-                var destDirectoryName = Path.Combine(fullDestinationPath, relativePath);
+                // TODO: check for hashes
+                var sourceFileName = Path.Combine(sourceFullPath, fileRelativePath);
+                var destinationFileName = Path.Combine(destinationFullPath, fileRelativePath);
+                _logger.LogInformation("Copying `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
+                _fileSystem.File.Copy(sourceFileName, destinationFileName, true);
+            }
 
-                _logger.LogDebug("Checking if `{Relative}` directory in `{Destination}` exists as `{source}`.", relativePath, fullDestinationPath, sourceDirectoryName);
-                if (!_fileSystem.Directory.Exists(sourceDirectoryName))
-                {
-                    _logger.LogInformation("Deleting `{DestFileName}` because it doesn't exist in source directory.", destDirectoryName);
-                    _fileSystem.Directory.Delete(destDirectoryName, true);
-                }
+            foreach (var fileRelativePath in destinationOnlyFilesRelativePaths)
+            {
+                var destinationFileName = Path.Combine(destinationFullPath, fileRelativePath);
+                _logger.LogInformation("Deleting {DestinationFileName} because it doesn't exist in source directory.", destinationFileName);
+                _fileSystem.File.Delete(destinationFileName);
+            }
+
+            foreach (var directoryRelativePath in destinationOnlyDirectoriesRelativePaths)
+            {
+                var destinationDirectoryName = Path.Combine(destinationFullPath, directoryRelativePath);
+                _logger.LogInformation("Deleting `{DestinationDirectoryName}` because it doesn't exist in source directory.", destinationDirectoryName);
+                _fileSystem.Directory.Delete(destinationDirectoryName, true);
             }
 
             return true;
