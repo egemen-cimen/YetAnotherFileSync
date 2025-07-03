@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 
 namespace Synchronizer
 {
-    public class FolderSynchronizer(ILogger logger, System.IO.Abstractions.IFileSystem fileSystem) : IFolderSynchronizer
+    public class FolderSynchronizer(ILogger logger, System.IO.Abstractions.IFileSystem fileSystem, MD5 md5) : IFolderSynchronizer
     {
         private readonly ILogger _logger = logger;
         private readonly System.IO.Abstractions.IFileSystem _fileSystem = fileSystem;
+        private readonly MD5 _md5 = md5;
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
@@ -51,11 +53,16 @@ namespace Synchronizer
 
             foreach (var fileRelativePath in commonFilesRelativePaths)
             {
-                // TODO: check for hashes
                 var sourceFileName = Path.Combine(sourceFullPath, fileRelativePath);
                 var destinationFileName = Path.Combine(destinationFullPath, fileRelativePath);
-                _logger.LogInformation("Copying `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
-                _fileSystem.File.Copy(sourceFileName, destinationFileName, true);
+
+                var sourceFileHash = CalculateMd5(sourceFileName);
+                var destinationFileHash = CalculateMd5(destinationFileName);
+                if (!sourceFileHash.SequenceEqual(destinationFileHash))
+                {
+                    _logger.LogInformation("Copying `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
+                    _fileSystem.File.Copy(sourceFileName, destinationFileName, true);
+                }
             }
 
             foreach (var fileRelativePath in destinationOnlyFilesRelativePaths)
@@ -72,7 +79,14 @@ namespace Synchronizer
                 _fileSystem.Directory.Delete(destinationDirectoryName, true);
             }
 
+            _logger.LogInformation("Sync is complete");
             return true;
+        }
+
+        private byte[] CalculateMd5(string filename)
+        {
+            using var stream = _fileSystem.File.OpenRead(filename);
+            return _md5.ComputeHash(stream);
         }
 
         private string? CheckDirectoryAndGetFullPath(string path)

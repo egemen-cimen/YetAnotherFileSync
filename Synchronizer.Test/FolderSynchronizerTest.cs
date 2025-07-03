@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Text;
+using System.Security.Cryptography;
 
 namespace Synchronizer.Test
 {
@@ -21,7 +22,8 @@ namespace Synchronizer.Test
                 { @"c:\backup", new MockDirectoryData() }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -43,6 +45,47 @@ namespace Synchronizer.Test
         }
 
         [TestMethod]
+        public void GivenSameInputAndOutputFoldersWhenSyncedThenNothingIsCopied()
+        {
+            // GIVEN
+            var loggerFactory = new NullLoggerFactory();
+            var logger = loggerFactory.CreateLogger("test");
+
+            var sourceFileData = new MockFileData([0x12, 0x34, 0x56, 0xd2])
+            {
+                LastWriteTime = new DateTimeOffset(2022, 2, 22, 22, 22, 22, TimeSpan.Zero)
+            };
+            var destinationFileData = new MockFileData([0x12, 0x34, 0x56, 0xd2])
+            {
+                LastWriteTime = new DateTimeOffset(2023, 3, 23, 23, 23, 23, TimeSpan.Zero)
+            };
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"c:\demo\image.gif", sourceFileData },
+                { @"c:\backup\image.gif", destinationFileData }
+            });
+
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
+
+            // WHEN
+            var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
+
+            // THEN
+            Assert.IsTrue(result);
+
+            var files = fileSystem.Directory.GetFiles(@"c:\backup");
+            Assert.AreEqual(1, files.Length);
+
+            var file = fileSystem.GetFile(@"c:\backup\image.gif");
+
+            Assert.IsNotNull(file);
+            CollectionAssert.AreEqual(new byte[] { 0x12, 0x34, 0x56, 0xd2 }, file.Contents);
+
+            Assert.AreEqual(destinationFileData.LastWriteTime, file?.LastWriteTime);
+        }
+
+        [TestMethod]
         public void GivenFlatInputFolderAndOutputWithExtraFilesWhenSyncedThenExtraFilesAreDeleted()
         {
             // GIVEN
@@ -55,7 +98,8 @@ namespace Synchronizer.Test
                 { @"c:\backup\image.gif", new MockFileData([0x12, 0x34, 0x56, 0xd2]) }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -87,7 +131,8 @@ namespace Synchronizer.Test
                 { @"c:\backup", new MockDirectoryData() }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -130,7 +175,8 @@ namespace Synchronizer.Test
                 { @"c:\backup\some files\image2.gif", new MockFileData([0x21, 0x43, 0x65, 0x2d]) }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -172,7 +218,8 @@ namespace Synchronizer.Test
                 { @"c:\backup\some files\image2.gif", new MockFileData([0x21, 0x43, 0x65, 0x2d]) }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -209,7 +256,8 @@ namespace Synchronizer.Test
                 { @"c:\backup\some files\directory 2", new MockDirectoryData() }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
@@ -248,7 +296,8 @@ namespace Synchronizer.Test
                 { @"c:\backup\jQuery.js", new MockFileData("some other js") }
             });
 
-            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem);
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
 
             // WHEN
             var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");

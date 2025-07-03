@@ -1,5 +1,6 @@
-﻿using Synchronizer;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using Synchronizer;
+using System.Security.Cryptography;
 
 namespace YetAnotherFileSync
 {
@@ -23,7 +24,9 @@ namespace YetAnotherFileSync
             programLogger.LogDebug("{Length} arguments given: {ArgsString}", args.Length, string.Join(", ", args));
 
             var fileSystem = new System.IO.Abstractions.FileSystem();
-            var folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger, fileSystem);
+
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger, fileSystem, md5);
             folderSynchronizer.SyncronizeFolders("C:\\Users\\ecime\\Desktop\\source 1", "C:\\Users\\ecime\\Desktop\\destination 2");
         }
     }
