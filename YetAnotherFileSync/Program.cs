@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Synchronizer;
 using System.Security.Cryptography;
+using Serilog;
 
 namespace YetAnotherFileSync
 {
@@ -8,6 +9,11 @@ namespace YetAnotherFileSync
     {
         static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo
+                .File("C:\\Users\\ecime\\Desktop\\log.txt")
+                .CreateLogger();
+
             using var factory = LoggerFactory.Create(builder =>
             {
                 builder
@@ -15,7 +21,8 @@ namespace YetAnotherFileSync
                     .AddFilter("System", LogLevel.Warning)
                     .AddFilter("YetAnotherFileSync.Program", LogLevel.Debug)
                     .AddFilter("Synchronizer.FolderSynchronizer", LogLevel.Debug)
-                    .AddConsole();
+                    .AddConsole()
+                    .AddSerilog();
             });
             var programLogger = factory.CreateLogger<Program>();
             var folderSynchronizerLogger = factory.CreateLogger<FolderSynchronizer>();
