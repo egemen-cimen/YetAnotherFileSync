@@ -11,6 +11,7 @@ namespace Synchronizer
 
         public bool SyncronizeFolders(string sourcePath, string destinationPath)
         {
+            _logger.LogInformation("Starting sync.");
             var sourceFullPath = CheckDirectoryAndGetFullPath(sourcePath);
             var destinationFullPath = CheckDirectoryAndGetFullPath(destinationPath);
 
@@ -62,7 +63,7 @@ namespace Synchronizer
                     var destinationFileHash = CalculateMd5(destinationFileName);
                     if (!sourceFileHash.SequenceEqual(destinationFileHash))
                     {
-                        _logger.LogInformation("Copying `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
+                        _logger.LogInformation("Copying and overwriting `{FileRelativePath}` from `{Source}` to `{Destination}`.", fileRelativePath, sourceFileName, destinationFileName);
                         _fileSystem.File.Copy(sourceFileName, destinationFileName, true);
                     }
                 }
@@ -70,14 +71,14 @@ namespace Synchronizer
                 foreach (var fileRelativePath in destinationOnlyFilesRelativePaths)
                 {
                     var destinationFileName = Path.Combine(destinationFullPath, fileRelativePath);
-                    _logger.LogInformation("Deleting {DestinationFileName} because it doesn't exist in source directory.", destinationFileName);
+                    _logger.LogInformation("Deleting file `{DestinationFileName}` because it doesn't exist in source directory.", destinationFileName);
                     _fileSystem.File.Delete(destinationFileName);
                 }
 
                 foreach (var directoryRelativePath in destinationOnlyDirectoriesRelativePaths)
                 {
                     var destinationDirectoryName = Path.Combine(destinationFullPath, directoryRelativePath);
-                    _logger.LogInformation("Deleting `{DestinationDirectoryName}` because it doesn't exist in source directory.", destinationDirectoryName);
+                    _logger.LogInformation("Deleting directory `{DestinationDirectoryName}` because it doesn't exist in source directory.", destinationDirectoryName);
                     _fileSystem.Directory.Delete(destinationDirectoryName, true);
                 }
             }
@@ -87,7 +88,7 @@ namespace Synchronizer
                 return false;
             }
 
-            _logger.LogInformation("Sync is complete");
+            _logger.LogInformation("Sync is complete.");
             return true;
         }
 
@@ -102,11 +103,11 @@ namespace Synchronizer
             var fullPath = Path.GetFullPath(path);
             if (!_fileSystem.Directory.Exists(fullPath))
             {
-                _logger.LogError("Folder {Path} does not exists as {FullPath}", path, fullPath);
+                _logger.LogError("Folder `{Path}` does not exists as `{FullPath}`.", path, fullPath);
                 return null;
             }
 
-            _logger.LogDebug("Folder {Path} exists as {FullPath}", path, fullPath);
+            _logger.LogDebug("Folder `{Path}` exists as `{FullPath}`.", path, fullPath);
             return fullPath;
         }
     }
