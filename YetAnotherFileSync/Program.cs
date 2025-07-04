@@ -9,21 +9,20 @@ namespace YetAnotherFileSync
     public class Program
     {
         private static bool _isSyncInProgress = false;
-        private static bool _isProgramRunning = false;
         private static IFolderSynchronizer? _folderSynchronizer;
         private static string _sourceDirectory = string.Empty;
         private static string _destinationDirectory = string.Empty;
         private static ILogger<Program>? _programLogger;
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             using var factory = LoggerFactory.Create(builder =>
             {
                 builder
                     .AddFilter("Microsoft", LogLevel.Warning)
                     .AddFilter("System", LogLevel.Warning)
-                    .AddFilter("YetAnotherFileSync.Program", LogLevel.Debug)
-                    .AddFilter("Synchronizer.FolderSynchronizer", LogLevel.Debug)
+                    .AddFilter("YetAnotherFileSync.Program", LogLevel.Information)
+                    .AddFilter("Synchronizer.FolderSynchronizer", LogLevel.Information)
                     .AddConsole()
                     .AddSerilog();
             });
@@ -72,24 +71,15 @@ namespace YetAnotherFileSync
             using var md5 = MD5.Create();
             _folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger, fileSystem, md5);
 
-
             System.Timers.Timer timer = new(interval: syncInterval * 1_000);
             timer.Elapsed += (sender, e) => HandleTimer();
             timer.Start();
 
-            _isProgramRunning = true;
-            Thread.Sleep(200_000);
-            _isProgramRunning = false;
+            await Task.Delay(Timeout.Infinite);
         }
 
         private static void HandleTimer()
         {
-            if (!_isProgramRunning)
-            {
-                _programLogger?.LogWarning("Timer triggered but program is not set as running.");
-                return;
-            }
-
             if (!_isSyncInProgress)
             {
                 _isSyncInProgress = true;
