@@ -61,7 +61,18 @@ namespace YetAnotherFileSync
 
             using var md5 = MD5.Create();
             var folderSynchronizer = new FolderSynchronizer(folderSynchronizerLogger, fileSystem, md5);
-            folderSynchronizer.SyncronizeFolders(args[0], args[1]);
+
+
+            void HandleTimer()
+            {
+                folderSynchronizer.SyncronizeFolders(args[0], args[1]);
+            }
+            System.Timers.Timer timer = new(interval: syncInterval * 1_000);
+            timer.Elapsed += (sender, e) => HandleTimer();
+            timer.Start();
+
+
+            Thread.Sleep(100_000);
         }
 
         private static bool CheckArgExistingDirectory(string arg, ILogger<Program> programLogger, System.IO.Abstractions.FileSystem fileSystem)
