@@ -75,7 +75,7 @@ namespace Synchronizer
                     _fileSystem.File.Delete(destinationFileName);
                 }
 
-                foreach (var directoryRelativePath in destinationOnlyDirectoriesRelativePaths)
+                foreach (var directoryRelativePath in destinationOnlyDirectoriesRelativePaths.OrderByDescending(p => p.Length))
                 {
                     var destinationDirectoryName = Path.Combine(destinationFullPath, directoryRelativePath);
                     _logger.LogInformation("Deleting directory `{DestinationDirectoryName}` because it doesn't exist in source directory.", destinationDirectoryName);

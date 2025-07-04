@@ -313,5 +313,33 @@ namespace Synchronizer.Test
             Assert.IsNotNull(file1);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("some js"), file1.Contents);
         }
+
+        [TestMethod]
+        public void GivenEmptyInputFolderAndOutputWithRecursiveDirectoriesWhenSyncedThenOutputIsEmpty()
+        {
+            // GIVEN
+            var loggerFactory = new NullLoggerFactory();
+            var logger = loggerFactory.CreateLogger("test");
+            var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
+            {
+                { @"c:\myfile.txt", new MockFileData("Testing testing.") },
+                { @"c:\demo", new MockDirectoryData() },
+                { @"c:\backup\jQuery.js", new MockFileData("some js") },
+                { @"c:\backup\some files\images\image.gif", new MockFileData([0x12, 0x34, 0x56, 0xd2]) },
+                { @"c:\backup\some files\New Text Document.txt", new MockFileData("some text") }
+            });
+
+            using var md5 = MD5.Create();
+            var folderSynchronizer = new FolderSynchronizer(logger, fileSystem, md5);
+
+            // WHEN
+            var result = folderSynchronizer.SyncronizeFolders(@"c:\demo", @"c:\backup");
+
+            // THEN
+            Assert.IsTrue(result);
+
+            var files = fileSystem.Directory.GetFiles(@"c:\backup");
+            Assert.AreEqual(0, files.Length);
+        }
     }
 }
